@@ -159,7 +159,7 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
 
     // Pagination and sorting
     const skip = (page - 1) * limit;
-    const sort = { [sortBy]: sortOrder };
+    const sort: { [key: string]: any } = { [sortBy]: sortOrder };
 
     // Fetch the coupons based on the query, with pagination and sorting
     const coupons = await Coupon.find(query).skip(skip).limit(limit).sort(sort);

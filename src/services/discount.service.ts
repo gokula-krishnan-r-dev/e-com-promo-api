@@ -10,7 +10,7 @@ export class DiscountService {
     const { sortBy, sortOrder, page, limit, search, ...filters } = queryParams;
 
     // Sort options based on query
-    const sortOptions = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+    const sortOptions: { [key: string]: 1 | -1 } = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
     const skip = (page - 1) * limit;
 
     // Build search conditions using $or operator to search multiple fields
