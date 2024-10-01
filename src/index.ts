@@ -10,7 +10,7 @@ connectDB();
 
 app.use(
   cors({
-    origin: '*', // Allow all origins (consider limiting this in production)
+    origin: '*', // Allow all origins (consider limiting this in production) --
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
     allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
   })
