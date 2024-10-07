@@ -35,7 +35,7 @@ const createDiscount = async (req: Request, res: Response) => {
 const getDiscounts = async (req: Request, res: Response) => {
   try {
     // Get query params
-    const { sortBy, sortOrder, page, limit, search, ...filters } = req.query;
+    const { sortBy, sortOrder, page, limit, search, startDate, endDate, ...filters } = req.query;
 
     // Get discounts using a service
     const { discounts, total } = await discountService.getDiscounts({
@@ -44,6 +44,8 @@ const getDiscounts = async (req: Request, res: Response) => {
       page: parseInt(page as string, 10),
       limit: parseInt(limit as string, 10),
       search: search as string,
+      startDate: startDate as string,
+      endDate: endDate as string,
       ...filters,
     });
 

@@ -3,10 +3,58 @@ import { CouponService } from '../services/coupon.service';
 import { validationResult } from 'express-validator';
 import { Coupon } from '../model/coupon.model';
 import Joi from 'joi';
-import { FilterQuery } from 'mongoose';
+import mongoose, { FilterQuery } from 'mongoose';
 import { couponSchema } from '../validation/coupon.validation';
 import { responseJson } from '../utils/responseJson';
+import { UserCouponMapping } from '../model/coupon.mapping.model';
+import { ValidProducts } from '../enums/coupon.enum';
+import UserModel from '../model/user.model';
+import ProductCouponMapping, { IProductCouponMapping } from '../model/coupon.product.mapping.model';
 const couponService = new CouponService();
+
+const assignCouponToUsers = async (userIds: string[], couponId: any) => {
+  try {
+    // Create mappings for each userId with the same couponId
+    const mappings = userIds.map((userId) => ({
+      userId,
+      couponId,
+      isUsed: false,
+    }));
+
+    // Bulk insert all mappings
+    await UserCouponMapping.insertMany(mappings);
+    console.log('Coupon assigned to users successfully');
+  } catch (error) {
+    console.error('Error assigning coupon to users:', error);
+  }
+};
+
+const createProductCouponMapping = async (
+  couponId: any,
+  validOnProducts: ValidProducts,
+  productIds?: string[], // Array of product IDs
+  categories?: string[] // Array of category IDs
+) => {
+  const mappingData: Partial<IProductCouponMapping> = {
+    couponId: new mongoose.Types.ObjectId(couponId),
+    validOnProducts,
+    isUsed: false,
+  };
+
+  // Handle array of product IDs when validOnProducts is SINGLE_PRODUCT
+  if (validOnProducts === ValidProducts.SPECIFIC_PRODUCT && productIds) {
+    mappingData.productIds = productIds.map((id) => new mongoose.Types.ObjectId(id));
+  }
+
+  // Handle categories if applicable
+  if (validOnProducts === ValidProducts.SPECIFIC_CATEGORY && categories) {
+    mappingData.categories = categories.map((id) => new mongoose.Types.ObjectId(id));
+  }
+
+  // Save the mapping to the database
+  const productCouponMapping = new ProductCouponMapping(mappingData);
+  await productCouponMapping.save();
+};
 
 export const createCoupon = async (req: Request, res: Response) => {
   // Validate the request body
@@ -23,9 +71,29 @@ export const createCoupon = async (req: Request, res: Response) => {
     if (existingCoupon) {
       return responseJson(res, 400, 'Coupon code already exists. Please choose a different code.');
     }
+    if (req.body.validOnProducts === ValidProducts.SPECIFIC_CATEGORY) {
+      // Ensure categories are provided in the coupon data
+      if (!req.body.categories || req.body.categories.length === 0) {
+        return responseJson(res, 400, 'Categories are required for specific category coupons');
+      }
+    }
 
     // If validation passes, create the coupon
     const coupon = await couponService.createCoupon(req.body);
+
+    const result = await assignCouponToUsers(req.body.userIds, coupon._id);
+    if (req.body.validOnProducts === ValidProducts.SPECIFIC_PRODUCT) {
+      const productCouponMapping = await createProductCouponMapping(
+        coupon._id,
+        req.body.validOnProducts,
+        req.body.product,
+        req.body.categories
+      );
+
+      console.log(productCouponMapping);
+    }
+    console.log(result);
+
     return responseJson(res, 201, 'Coupon created successfully', coupon);
   } catch (error) {
     console.error(error);
@@ -109,7 +177,7 @@ const buildFilterQuery = (filters: any): FilterQuery<any> => {
   switch (filters.filter) {
     case 'FLAT_DISCOUNT_NO_MIN':
       query.discountType = 'FLAT';
-      query.minimumPurchase = { $exists: false };
+      query.minimumPurchase = { $exists: true, $eq: 0 };
       break;
     case 'FLAT_DISCOUNT_WITH_MIN':
       query.discountType = 'FLAT';
@@ -117,7 +185,7 @@ const buildFilterQuery = (filters: any): FilterQuery<any> => {
       break;
     case 'FREE_SHIPPING':
       query.couponType = 'GENERAL';
-      query.couponGenerationType = 'AUTOMATIC'; // For example, a free shipping coupon
+      query.couponTypeDiscount = 'FREE_SHIPPING';
       break;
     case 'BIRTHDAY':
       query.couponType = 'BIRTHDAY';
@@ -280,10 +348,58 @@ export const getCouponById = async (req: Request, res: Response) => {
   }
 };
 
+const getProducts = async (req: Request, res: Response) => {
+  try {
+    const products = await couponService.getProducts();
+    return responseJson(res, 200, 'Products fetched successfully', products);
+  } catch (error) {
+    console.error(error);
+    return responseJson(res, 500, 'Failed to fetch products', null, error.message || 'Internal Server Error');
+  }
+};
+
+const addProducts = async (req: Request, res: Response) => {
+  try {
+    const products = await couponService.addProducts(req.body);
+    return responseJson(res, 200, 'Products added successfully', products);
+  } catch (error) {
+    console.error(error);
+    return responseJson(res, 500, 'Failed to add products', null, error.message || 'Internal Server Error');
+  }
+};
+
+export const getUserCoupons = async (req: Request, res: Response) => {
+  try {
+    // Fetch the coupons assigned to the user
+    const user = await UserModel.find({});
+    return responseJson(res, 200, 'User coupons fetched successfully', user);
+  } catch (error) {
+    console.error('Error fetching user coupons:', error);
+
+    // Handle specific errors if necessary
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        code: 'INVALID_ID',
+        message: 'The provided user ID is invalid.',
+      });
+    }
+
+    // General error handling
+    return res.status(500).json({
+      code: 'SERVER_ERROR',
+      message: 'An unexpected error occurred while attempting to fetch user coupons.',
+      details: error.message || 'Internal Server Error',
+    });
+  }
+};
+
 export default {
   createCoupon,
   getCoupons,
   updateCoupon,
   deleteCoupon,
   getCouponById,
+  getProducts,
+  getUserCoupons,
+  addProducts,
 };

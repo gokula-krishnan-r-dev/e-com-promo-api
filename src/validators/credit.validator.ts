@@ -11,6 +11,11 @@ export const createCreditSchema = Joi.object({
   endDate: Joi.date().min(Joi.ref('startDate')).optional().messages({
     'date.min': 'End date cannot be before start date',
   }),
+  userIds: Joi.array().items(Joi.string()).required().messages({
+    'array.base': 'User IDs must be an array',
+    'any.required': 'User IDs are required',
+  }),
+
   remarks: Joi.string().max(500).optional(),
   status: Joi.string()
     .valid(...Object.values(Status))

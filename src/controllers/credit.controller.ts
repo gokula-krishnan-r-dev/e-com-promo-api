@@ -1,6 +1,23 @@
 import { Request, Response } from 'express';
 import { createCreditSchema, updateCreditSchema } from '../validators/credit.validator';
 import { Credit } from '../model/credit.model';
+import { UserCreditMapping } from '../model/credit.mapping.model';
+const assignCouponToUsers = async (userIds: string[], creditId: any) => {
+  try {
+    // Create mappings for each userId with the same couponId
+    const mappings = userIds.map((userId) => ({
+      userId,
+      creditId,
+      isUsed: false,
+    }));
+
+    // Bulk insert all mappings
+    await UserCreditMapping.insertMany(mappings);
+    console.log('Coupon assigned to users successfully');
+  } catch (error) {
+    console.error('Error assigning coupon to users:', error);
+  }
+};
 
 export const createCredit = async (req: Request, res: Response) => {
   try {
@@ -12,11 +29,13 @@ export const createCredit = async (req: Request, res: Response) => {
 
     const credit = new Credit(value); // value already validated
 
+    await assignCouponToUsers(value.userIds, credit._id);
+
     await credit.save();
     return res.status(201).json({ message: 'Credit created successfully', credit });
   } catch (error) {
     console.log(error);
-    
+
     return res.status(500).json({ error: 'Failed to create credit' });
   }
 };

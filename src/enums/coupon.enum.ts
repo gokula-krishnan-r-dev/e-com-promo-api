@@ -16,8 +16,8 @@ export enum ValidCountry {
 
 export enum ValidProducts {
   ALL_PRODUCTS = 'ALL_PRODUCTS',
+  SPECIFIC_CATEGORY = 'SPECIFIC_CATEGORY',
   SPECIFIC_PRODUCT = 'SPECIFIC_PRODUCT',
-  SPECIFIC_MODULE = 'SPECIFIC_MODULE',
 }
 
 export enum Status {
@@ -38,4 +38,9 @@ export enum CouponUseType {
 export enum CouponDisplaySite {
   TRUE = 'TRUE',
   FALSE = 'FALSE',
+}
+
+export enum couponTypeDiscount {
+  FLAT_DISCOUNT = 'FLAT_DISCOUNT',
+  FREE_SHIPPING = 'FREE_SHIPPING',
 }

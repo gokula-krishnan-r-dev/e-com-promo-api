@@ -7,7 +7,7 @@ export class DiscountService {
     return newCoupon;
   }
   async getDiscounts(queryParams: any) {
-    const { sortBy, sortOrder, page, limit, search, ...filters } = queryParams;
+    const { sortBy, sortOrder, page, limit, search, startDate, endDate, ...filters } = queryParams;
 
     // Sort options based on query
     const sortOptions: { [key: string]: 1 | -1 } = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
@@ -24,10 +24,20 @@ export class DiscountService {
         }
       : {};
 
-    // Combine filters with search conditions
+    // Date range filtering using startDate and endDate
+    const dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter['startDate'] = {
+        $gte: new Date(startDate), // Greater than or equal to the specified startDate
+        $lte: new Date(endDate), // Less than or equal to the specified endDate
+      };
+    }
+
+    // Combine filters, search conditions, and date filters
     const queryConditions = {
       ...filters,
       ...searchConditions,
+      ...dateFilter,
     };
 
     // Fetch the discounts from the database

@@ -1,5 +1,6 @@
 import { CouponGenerationType } from '../enums/coupon.enum';
 import { Coupon } from '../model/coupon.model';
+import ProductModel from '../model/product.model';
 import { generateCouponCode } from '../utils/coupon.utils';
 
 export class CouponService {
@@ -29,5 +30,13 @@ export class CouponService {
 
   async deleteCoupon(couponId: string) {
     return Coupon.findByIdAndDelete(couponId);
+  }
+
+  async getProducts() {
+    return ProductModel.find();
+  }
+
+  async addProducts(product: any) {
+    return ProductModel.create(product);
   }
 }

@@ -1,11 +1,30 @@
 import { Schema, model, Document } from 'mongoose';
-import { CouponType, DiscountType, ValidCountry, ValidProducts, Status, CouponUseType } from '../enums/coupon.enum';
-
+import {
+  CouponType,
+  DiscountType,
+  ValidCountry,
+  ValidProducts,
+  Status,
+  CouponUseType,
+  couponTypeDiscount,
+} from '../enums/coupon.enum';
+export interface ICategory {
+  id: string;
+  name: string;
+  isChecked: boolean;
+  subcategories: Array<{
+    id: string;
+    name: string;
+    isChecked: boolean;
+  }>;
+}
 export interface ICoupon extends Document {
   couponType: CouponType;
   couponCode?: string;
+  couponTypeDiscount?: couponTypeDiscount;
   discountType: DiscountType;
   discountValue: number;
+  categories?: ICategory[];
   minimumPurchase: number;
   startDate?: Date;
   endDate?: Date;
@@ -38,6 +57,13 @@ const CouponSchema = new Schema<ICoupon>(
     displayOnSite: { type: Boolean, required: false },
     description: { type: String, required: false },
     status: { type: String, enum: Status, required: true },
+    couponTypeDiscount: {
+      type: String,
+      enum: couponTypeDiscount,
+      required: function (this: ICoupon) {
+        return this.couponType === 'GENERAL';
+      },
+    },
     birthdayMonth: {
       type: String,
       required: function (this: ICoupon) {
@@ -50,7 +76,22 @@ const CouponSchema = new Schema<ICoupon>(
         return this.couponType === 'ANNIVERSARY';
       },
     },
+    categories: [
+      {
+        id: { type: String, required: true },
+        name: { type: String, required: true },
+        isChecked: { type: Boolean, required: true },
+        subcategories: [
+          {
+            id: { type: String, required: true },
+            name: { type: String, required: true },
+            isChecked: { type: Boolean, required: true },
+          },
+        ],
+      },
+    ],
   },
+
   { timestamps: true }
 );
 

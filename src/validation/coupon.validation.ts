@@ -67,8 +67,8 @@ export const validateCreateCoupon = Joi.object({
     'any.required': 'Valid country is required.',
   }),
 
-  validOnProducts: Joi.string().valid('ALL_PRODUCTS', 'SPECIFIC_PRODUCT', 'SPECIFIC_MODULE').required().messages({
-    'any.only': 'Invalid product type. Must be ALL_PRODUCTS, SPECIFIC_PRODUCT, or SPECIFIC_MODULE.',
+  validOnProducts: Joi.string().valid('ALL_PRODUCTS', 'SPECIFIC_CATEGORY', 'SPECIFIC_PRODUCT').required().messages({
+    'any.only': 'Invalid product type. Must be ALL_PRODUCTS, SPECIFIC_CATEGORY, or SPECIFIC_PRODUCT.',
     'any.required': 'Product type is required.',
   }),
 
