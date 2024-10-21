@@ -61,4 +61,9 @@ export class DiscountService {
   async updateDiscount(id: string, discountData: any) {
     return Discount.findByIdAndUpdate(id, discountData, { new: true });
   }
+
+  //delete
+  async deleteDiscount(id: string) {
+    return Discount.findByIdAndDelete(id);
+  }
 }

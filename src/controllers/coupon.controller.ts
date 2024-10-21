@@ -173,14 +173,12 @@ const buildFilterQuery = (filters: any): FilterQuery<any> => {
     query.useType = filters.useType;
   }
 
-  // Apply specific filter cases
+  // Apply specific filter cases dynamically
   switch (filters.filter) {
     case 'FLAT_DISCOUNT_NO_MIN':
-      query.discountType = 'FLAT';
       query.minimumPurchase = { $exists: true, $eq: 0 };
       break;
     case 'FLAT_DISCOUNT_WITH_MIN':
-      query.discountType = 'FLAT';
       query.minimumPurchase = { $gt: 0 };
       break;
     case 'FREE_SHIPPING':
@@ -193,6 +191,8 @@ const buildFilterQuery = (filters: any): FilterQuery<any> => {
     case 'ANNIVERSARY':
       query.couponType = 'ANNIVERSARY';
       break;
+    default:
+      break;
   }
 
   return query;
@@ -201,7 +201,7 @@ const buildFilterQuery = (filters: any): FilterQuery<any> => {
 // GET method for fetching coupons with search and filters
 export const getCoupons = async (req: Request, res: Response): Promise<Response> => {
   try {
-    // Validate query params
+    // Validate query params using Joi (or your preferred validation library)
     const { error, value: filters } = validateCouponSearch.validate(req.query);
 
     if (error) {
@@ -213,9 +213,9 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
     }
 
     // Extract pagination and sorting info
-    const page = Number(filters.page);
-    const limit = Number(filters.limit);
-    const sortBy = filters.sortBy;
+    const page = Number(filters.page) || 1;
+    const limit = Number(filters.limit) || 10;
+    const sortBy = filters.sortBy || 'createdAt'; // Default sorting by created date
     const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;
 
     // Ensure limit and page are valid numbers
@@ -254,7 +254,6 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
     });
   }
 };
-
 // Delete coupon by ID
 export const deleteCoupon = async (req: Request, res: Response) => {
   try {

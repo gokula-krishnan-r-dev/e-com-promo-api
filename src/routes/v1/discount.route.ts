@@ -14,6 +14,7 @@ discountRoute.put('/first-order-discounts/:id', validateFirstOrderDiscount, firs
 discountRoute.get('/', discountController.getDiscounts);
 discountRoute.get('/first-order-discounts', firstOrderDiscountController.getDiscount);
 discountRoute.get('/:id', discountController.getDiscountById);
+discountRoute.delete('/:id', discountController.deleteDiscount);
 
 // Apply the first-order discount
 discountRoute.post('/apply/:userId', firstOrderDiscountController.applyDiscount);
