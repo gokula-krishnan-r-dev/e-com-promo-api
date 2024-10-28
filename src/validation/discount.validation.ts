@@ -16,11 +16,11 @@ export const discountSchema = Joi.object({
   }),
 
   validCountry: Joi.string()
-    .valid('ALL', 'INDIA', 'USA', 'CANADA') // Add more countries as needed
+    .valid('ALL', 'US', 'CA', 'US/UK', 'ROW') // Add more countries as needed
     .required()
     .label('Valid Country')
     .messages({
-      'any.only': '"Valid Country" must be one of [ALL, INDIA, USA, CANADA].',
+      'any.only': '"Valid Country" must be one of ["ALL", "US", "CA", "US/UK", "ROW"].',
       'any.required': '"Valid Country" is required.',
     }),
 
@@ -50,6 +50,7 @@ export const discountSchema = Joi.object({
 const firstOrderDiscountSchema = Joi.object({
   discountPercentage: Joi.number().min(0).max(100).optional(),
   isActive: Joi.boolean().optional(),
+  userIds: Joi.array().items(Joi.string()).min(1).required(),
 });
 
 // Middleware to validate request body

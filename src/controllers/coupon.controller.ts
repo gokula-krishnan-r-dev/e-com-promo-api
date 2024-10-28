@@ -10,6 +10,7 @@ import { UserCouponMapping } from '../model/coupon.mapping.model';
 import { ValidProducts } from '../enums/coupon.enum';
 import UserModel from '../model/user.model';
 import ProductCouponMapping, { IProductCouponMapping } from '../model/coupon.product.mapping.model';
+import { generateCouponCode } from '../utils/coupon.utils';
 const couponService = new CouponService();
 
 const assignCouponToUsers = async (userIds: string[], couponId: any) => {
@@ -78,23 +79,47 @@ export const createCoupon = async (req: Request, res: Response) => {
       }
     }
 
-    // If validation passes, create the coupon
+    if (req.body.noOfCoupon) {
+      const random = Math.floor(Math.random() * 1000);
+      for (let i = 0; i < req.body.noOfCoupon; i++) {
+        req.body.diffrance = random;
+        req.body.couponCode = generateCouponCode();
+        const coupon = await couponService.createCoupon(req.body);
+
+        // Assign coupon to users
+        await assignCouponToUsers(req.body.userIds, coupon._id);
+
+        // If valid on specific products, create a product-coupon mapping
+        if (req.body.validOnProducts === ValidProducts.SPECIFIC_PRODUCT && req.body.product) {
+          const productCouponMapping = await createProductCouponMapping(
+            coupon._id,
+            req.body.validOnProducts,
+            req.body.product,
+            req.body.categories
+          );
+          console.log('Product-Coupon Mapping:', productCouponMapping);
+        }
+      }
+      return responseJson(res, 201, 'Coupon created successfully');
+    }
+
     const coupon = await couponService.createCoupon(req.body);
 
-    const result = await assignCouponToUsers(req.body.userIds, coupon._id);
-    if (req.body.validOnProducts === ValidProducts.SPECIFIC_PRODUCT) {
+    // Assign coupon to users
+    await assignCouponToUsers(req.body.userIds, coupon._id);
+
+    // If valid on specific products, create a product-coupon mapping
+    if (req.body.validOnProducts === ValidProducts.SPECIFIC_PRODUCT && req.body.product) {
       const productCouponMapping = await createProductCouponMapping(
         coupon._id,
         req.body.validOnProducts,
         req.body.product,
         req.body.categories
       );
-
-      console.log(productCouponMapping);
+      console.log('Product-Coupon Mapping:', productCouponMapping);
     }
-    console.log(result);
 
-    return responseJson(res, 201, 'Coupon created successfully', coupon);
+    return responseJson(res, 201, 'Coupon created successfully');
   } catch (error) {
     console.error(error);
     return responseJson(res, 500, 'Failed to create coupon', null, error.message || 'Internal Server Error');
@@ -104,16 +129,6 @@ export const createCoupon = async (req: Request, res: Response) => {
 export const updateCoupon = async (req: Request, res: Response) => {
   try {
     const { couponId } = req.params;
-
-    // Validate the request body using Joi
-    const { error, value: couponData } = couponSchema.validate(req.body, { abortEarly: false });
-
-    if (error) {
-      return res.status(400).json({
-        message: 'Validation error',
-        details: error.details.map((err) => err.message),
-      });
-    }
 
     // Check if the coupon exists
     const existingCoupon = await Coupon.findById(couponId);
@@ -126,7 +141,7 @@ export const updateCoupon = async (req: Request, res: Response) => {
     }
 
     // Update the coupon
-    const updatedCoupon = await couponService.updateCoupon(couponId, couponData);
+    const updatedCoupon = await couponService.updateCoupon(couponId, req.body);
     res.status(200).json(updatedCoupon);
   } catch (error) {
     console.error(error);
@@ -151,6 +166,22 @@ const validateCouponSearch = Joi.object({
   sortOrder: Joi.string().valid('asc', 'desc').default('desc').optional(),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).default(10),
+  month: Joi.string()
+    .valid(
+      'january',
+      'february',
+      'march',
+      'april',
+      'may',
+      'june',
+      'july',
+      'august',
+      'september',
+      'october',
+      'november',
+      'december'
+    )
+    .optional(),
 });
 
 // Helper function to build the filter query
@@ -173,12 +204,17 @@ const buildFilterQuery = (filters: any): FilterQuery<any> => {
     query.useType = filters.useType;
   }
 
+  if (filters.month) {
+    query.$or = [{ birthdayMonth: filters.month }, { anniversaryMonth: filters.month }];
+  }
+
   // Apply specific filter cases dynamically
   switch (filters.filter) {
     case 'FLAT_DISCOUNT_NO_MIN':
       query.minimumPurchase = { $exists: true, $eq: 0 };
       break;
     case 'FLAT_DISCOUNT_WITH_MIN':
+      query.couponType = 'GENERAL';
       query.minimumPurchase = { $gt: 0 };
       break;
     case 'FREE_SHIPPING':
@@ -214,7 +250,7 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
 
     // Extract pagination and sorting info
     const page = Number(filters.page) || 1;
-    const limit = Number(filters.limit) || 10;
+    const limit = Number(filters.limit) || 1;
     const sortBy = filters.sortBy || 'createdAt'; // Default sorting by created date
     const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;
 
@@ -326,7 +362,16 @@ export const getCouponById = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(200).json(existingCoupon);
+    const diffrance = existingCoupon.diffrance;
+
+    const relatedCoupons = await Coupon.find({ diffrance });
+    const couponArray = [existingCoupon, ...relatedCoupons];
+    return res.status(200).json({
+      code: 'COUPON_FETCHED_SUCCESSFULLY',
+      message: `Coupon with ID ${couponId} fetched successfully.`,
+      coupon: existingCoupon,
+      relatedCoupons: couponArray,
+    });
   } catch (error) {
     console.error('Error fetching coupon:', error);
 

@@ -30,7 +30,7 @@ const discountSchema = new Schema<IDiscount>(
     },
     validCountry: {
       type: String,
-      enum: ['ALL', 'INDIA', 'USA', 'CANADA'], // Enum for valid countries
+      enum: ['ALL', 'US', 'CA', 'US/UK', 'ROW'], // Enum for valid countries
       required: [true, 'Valid country is required.'],
     },
     displayOnSite: {

@@ -62,8 +62,8 @@ export const validateCreateCoupon = Joi.object({
     'any.required': 'Use type is required.',
   }),
 
-  validForCountry: Joi.string().valid('ALL', 'INDIA').required().messages({
-    'any.only': 'Invalid country. Must be ALL or INDIA.',
+  validForCountry: Joi.string().valid('ALL', 'US', 'CA', 'US/UK', 'ROW').required().messages({
+    'any.only': 'Invalid country. Must be ALL or US.',
     'any.required': 'Valid country is required.',
   }),
 
@@ -77,10 +77,7 @@ export const validateCreateCoupon = Joi.object({
     'any.required': 'Display on site is required.',
   }),
 
-  description: Joi.string().required().messages({
-    'string.empty': 'Description is required.',
-    'any.required': 'Description is required.',
-  }),
+  description: Joi.string().optional().messages({}),
 
   status: Joi.string().valid('ACTIVE', 'INACTIVE').required().messages({
     'any.only': 'Invalid status. Must be ACTIVE or INACTIVE.',

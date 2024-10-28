@@ -38,13 +38,20 @@ export interface ICoupon extends Document {
   displayOnSite?: boolean;
   description: string;
   status: Status;
+  useCount: number;
+  noOfCoupon?: number;
+  couponMethod?: string;
+  diffrance?: number;
 }
-
 const CouponSchema = new Schema<ICoupon>(
   {
     couponType: { type: String, enum: CouponType, required: true },
+    diffrance: { type: Number, required: false },
+    useCount: { type: Number, required: false, default: 0 },
+    noOfCoupon: { type: Number, required: false },
     couponCode: { type: String, required: false, unique: true },
     discountType: { type: String, enum: DiscountType, required: true },
+    couponMethod: { type: String, required: false },
     discountValue: { type: Number, required: true },
     minimumPurchase: { type: Number, required: true, default: 0 },
     startDate: { type: Date, required: false },

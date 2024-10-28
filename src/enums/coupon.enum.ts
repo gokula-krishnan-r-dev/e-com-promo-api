@@ -11,7 +11,10 @@ export enum DiscountType {
 
 export enum ValidCountry {
   ALL = 'ALL',
-  INDIA = 'INDIA',
+  US = 'US',
+  CA = 'CA',
+  US_UK = 'US/UK',
+  ROW = 'ROW',
 }
 
 export enum ValidProducts {

@@ -4,6 +4,12 @@ import { Schema, model, Document } from 'mongoose';
 interface IFirstOrderDiscount extends Document {
   discountPercentage: number;
   isApplied?: boolean;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  mailDate: Date;
+  isUsered?: boolean;
 }
 
 // Mongoose Schema for First Order Discount
@@ -14,6 +20,31 @@ const firstOrderDiscountSchema = new Schema<IFirstOrderDiscount>(
       required: true, // Only this field is required
       min: 0,
       max: 100,
+    },
+    userId: {
+      type: String,
+      required: true, // Only this field is required
+      unique: false,
+    },
+    isUsered: {
+      type: Boolean,
+      default: false, // Default to false if not provided
+    },
+    firstName: {
+      type: String,
+      required: true, // Only this field is required
+    },
+    lastName: {
+      type: String,
+      required: true, // Only this field is required
+    },
+    mailDate: {
+      type: Date,
+      default: Date.now,
+    },
+    email: {
+      type: String,
+      required: true, // Only this field is required
     },
     isApplied: {
       type: Boolean,

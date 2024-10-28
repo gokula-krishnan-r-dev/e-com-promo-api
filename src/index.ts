@@ -4,6 +4,8 @@ import routes from './routes/v1';
 import connectDB from './config/db';
 const port = process.env.PORT;
 import cors from 'cors';
+import updateExpiredCouponsMiddleware from './utils/midddleware';
+
 const app = express();
 app.use(express.json());
 connectDB();
@@ -18,7 +20,7 @@ app.use(
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
-
+app.use(updateExpiredCouponsMiddleware);
 app.use('/api/v1', routes);
 
 app.listen(port, () => {

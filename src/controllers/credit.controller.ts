@@ -40,10 +40,22 @@ export const createCredit = async (req: Request, res: Response) => {
   }
 };
 
-export const getCredit = async (_req: Request, res: Response) => {
+export const getCredit = async (req: Request, res: Response) => {
   try {
+    const { sortBy, sortOrder, page, limit, search, startDate, endDate, ...filters } = req.query;
+
     const credits = await Credit.find();
-    return res.status(200).json({ credits });
+    const totalCredit = await Credit.countDocuments();
+    return res.status(200).json({
+      data: credits,
+      message: 'Credits retrieved successfully',
+      pagination: {
+        totalItems: totalCredit,
+        currentPage: page,
+        totalPages: Math.ceil(totalCredit / Number(limit) || 1),
+        pageSize: limit,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to retrieve credits' });
   }

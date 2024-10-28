@@ -50,12 +50,17 @@ const getDiscounts = async (req: Request, res: Response) => {
       ...filters,
     });
 
+    const discountsCount = await Discount.countDocuments();
+
     // Return success response
     return res.status(200).json({
       discounts,
       total,
-      page: parseInt(page as string, 10),
-      limit: parseInt(limit as string, 10),
+      pagination: {
+        page: parseInt(page as string, 10),
+        limit: parseInt(limit as string, 10),
+        totalPages: Math.ceil(discountsCount / parseInt(limit as string, 10)),
+      },
     });
   } catch (error) {
     console.error('Error getting discounts:', error);
