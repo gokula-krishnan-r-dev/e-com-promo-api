@@ -365,7 +365,7 @@ export const getCouponById = async (req: Request, res: Response) => {
     const diffrance = existingCoupon.diffrance;
 
     const relatedCoupons = await Coupon.find({ diffrance });
-    const couponArray = [existingCoupon, ...relatedCoupons];
+    const couponArray = [...relatedCoupons];
     return res.status(200).json({
       code: 'COUPON_FETCHED_SUCCESSFULLY',
       message: `Coupon with ID ${couponId} fetched successfully.`,
