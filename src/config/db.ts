@@ -1,4 +1,4 @@
-import { ConnectOptions } from 'mongodb';
+import { ConnectOptions, MongoClient } from 'mongodb';
 import mongoose from 'mongoose';
 
 const connectDB = async (): Promise<typeof mongoose | void> => {

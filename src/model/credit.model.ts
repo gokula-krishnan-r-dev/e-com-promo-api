@@ -10,6 +10,7 @@ export interface ICredit extends Document {
   timesUse?: number;
   status: Status;
   user: string | string[];
+  usedAmount?: number;
 }
 
 const creditSchema = new Schema<ICredit>(
@@ -22,6 +23,7 @@ const creditSchema = new Schema<ICredit>(
     timesUse: { type: Number, required: false, default: 1 },
     status: { type: String, enum: Status, required: true },
     user: { type: String, ref: 'User', required: true },
+    usedAmount: { type: Number, required: false, default: 0 },
   },
   { timestamps: true }
 );

@@ -63,9 +63,9 @@ const createProductCouponMapping = async (
  * @returns A string like "SDSS346734673SDSDHSD".
  */
 function generateUniqueText(length: number = 20): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const numbers = "0123456789";
-  let result = "";
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
+  let result = '';
 
   // Generate a random combination of letters and numbers
   for (let i = 0; i < length; i++) {
@@ -80,7 +80,6 @@ function generateUniqueText(length: number = 20): string {
 
   return result;
 }
-
 
 export const createCoupon = async (req: Request, res: Response) => {
   // Validate the request body
@@ -105,7 +104,7 @@ export const createCoupon = async (req: Request, res: Response) => {
     }
 
     const random = generateUniqueText(6);
-console.log(random , "random");
+    console.log(random, 'random');
 
     if (req.body.noOfCoupon) {
       for (let i = 0; i < req.body.noOfCoupon; i++) {
@@ -129,17 +128,14 @@ console.log(random , "random");
         }
       }
 
-
       return responseJson(res, 201, 'Coupon created successfully');
     }
 
-
-
-    if (req.body.couponType === CouponType.BIRTHDAY ){
+    if (req.body.couponType === CouponType.BIRTHDAY) {
       req.body.useType = 'ONE_TIME';
     }
-    
-    if (req.body.couponType === CouponType.ANNIVERSARY ){
+
+    if (req.body.couponType === CouponType.ANNIVERSARY) {
       req.body.useType = 'ONE_TIME';
     }
 
@@ -230,9 +226,18 @@ const validateCouponSearch = Joi.object({
 const buildFilterQuery = (filters: any): FilterQuery<any> => {
   const query: FilterQuery<any> = {};
 
+  // couponCode search
   if (filters.couponCode) {
-    query.couponCode = { $regex: filters.couponCode, $options: 'i' }; // Case-insensitive search
+    query.$or = [
+      { couponCode: { $regex: new RegExp(filters.couponCode, 'i') } },
+      { diffrance: { $regex: new RegExp(filters.couponCode, 'i') } },
+    ];
   }
+
+  // Log the filters for debugging
+  console.log(filters, 'filters');
+
+  // Additional filters
   if (filters.couponType) {
     query.couponType = filters.couponType;
   }
@@ -250,7 +255,7 @@ const buildFilterQuery = (filters: any): FilterQuery<any> => {
     query.$or = [{ birthdayMonth: filters.month }, { anniversaryMonth: filters.month }];
   }
 
-  // Apply specific filter cases dynamically
+  // Dynamic filters based on the filter type
   switch (filters.filter) {
     case 'FLAT_DISCOUNT_NO_MIN':
       query.couponType = 'GENERAL';
@@ -304,6 +309,7 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
     }
 
     const query = buildFilterQuery(filters);
+    console.log(query, 'query');
 
     // Pagination and sorting
     const skip = (page - 1) * limit;
@@ -311,19 +317,27 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
 
     // Fetch coupons based on the query, pagination, and sorting
     let coupons = await Coupon.find(query).skip(skip).limit(limit).sort(sort);
+    console.log(coupons, 'coupons', query);
 
-    // Filter out duplicates based on the "diffrance" field, keeping only the first unique entry
+    // Proceed with deduplication and couponCode replacement only if there are more than two unique diffrance values
     const uniqueCoupons = coupons.reduce((acc, coupon) => {
       if (!acc.some((item) => item.diffrance === coupon.diffrance)) {
         // Replace couponCode with diffrance
-        const modifiedCoupon = {
-          ...coupon.toObject(), // Convert to a plain object
-          couponCode: coupon.diffrance, // Set couponCode to diffrance
-        };
-        acc.push(modifiedCoupon);
+        if (coupon.isAuto) {
+          const modifiedCoupon = {
+            ...coupon.toObject(), // Convert to a plain object
+            couponCode: coupon.diffrance, // Set couponCode to diffrance
+          };
+          acc.push(modifiedCoupon);
+        } else {
+          acc.push(coupon);
+        }
       }
+
       return acc;
     }, []);
+
+    coupons = uniqueCoupons; // Assign back the modified list if deduplication occurred
 
     // Fetch the total count for pagination
     const totalCoupons = await Coupon.countDocuments(query);
@@ -331,9 +345,9 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
     // Return the result with pagination info
     return res.status(200).json({
       status: 'success',
-      data: uniqueCoupons,
+      data: coupons,
       pagination: {
-        totalItems: uniqueCoupons.length,
+        totalItems: coupons.length,
         currentPage: page,
         totalPages: Math.ceil(totalCoupons / limit),
         pageSize: limit,
@@ -347,8 +361,6 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
     });
   }
 };
-
-
 
 // Delete coupon by ID
 export const deleteCoupon = async (req: Request, res: Response) => {
