@@ -7,7 +7,7 @@ import mongoose, { FilterQuery } from 'mongoose';
 import { couponSchema } from '../validation/coupon.validation';
 import { responseJson } from '../utils/responseJson';
 import { UserCouponMapping } from '../model/coupon.mapping.model';
-import { ValidProducts } from '../enums/coupon.enum';
+import { CouponType, ValidProducts } from '../enums/coupon.enum';
 import UserModel from '../model/user.model';
 import ProductCouponMapping, { IProductCouponMapping } from '../model/coupon.product.mapping.model';
 import { generateCouponCode } from '../utils/coupon.utils';
@@ -56,6 +56,31 @@ const createProductCouponMapping = async (
   const productCouponMapping = new ProductCouponMapping(mappingData);
   await productCouponMapping.save();
 };
+/**
+ * Generates a unique, formatted text with a combination of letters and numbers.
+ *
+ * @param length - The desired length of the unique string.
+ * @returns A string like "SDSS346734673SDSDHSD".
+ */
+function generateUniqueText(length: number = 20): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const numbers = "0123456789";
+  let result = "";
+
+  // Generate a random combination of letters and numbers
+  for (let i = 0; i < length; i++) {
+    // Randomly choose between a letter or a number
+    const isLetter = Math.random() > 0.5;
+    if (isLetter) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    } else {
+      result += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    }
+  }
+
+  return result;
+}
+
 
 export const createCoupon = async (req: Request, res: Response) => {
   // Validate the request body
@@ -79,10 +104,13 @@ export const createCoupon = async (req: Request, res: Response) => {
       }
     }
 
+    const random = generateUniqueText(6);
+console.log(random , "random");
+
     if (req.body.noOfCoupon) {
-      const random = Math.floor(Math.random() * 1000);
       for (let i = 0; i < req.body.noOfCoupon; i++) {
         req.body.diffrance = random;
+        req.body.isAuto = true;
         req.body.couponCode = generateCouponCode();
         const coupon = await couponService.createCoupon(req.body);
 
@@ -100,9 +128,23 @@ export const createCoupon = async (req: Request, res: Response) => {
           console.log('Product-Coupon Mapping:', productCouponMapping);
         }
       }
+
+
       return responseJson(res, 201, 'Coupon created successfully');
     }
 
+
+
+    if (req.body.couponType === CouponType.BIRTHDAY ){
+      req.body.useType = 'ONE_TIME';
+    }
+    
+    if (req.body.couponType === CouponType.ANNIVERSARY ){
+      req.body.useType = 'ONE_TIME';
+    }
+
+    req.body.diffrance = random;
+    req.body.isAuto = false;
     const coupon = await couponService.createCoupon(req.body);
 
     // Assign coupon to users
@@ -211,10 +253,13 @@ const buildFilterQuery = (filters: any): FilterQuery<any> => {
   // Apply specific filter cases dynamically
   switch (filters.filter) {
     case 'FLAT_DISCOUNT_NO_MIN':
+      query.couponType = 'GENERAL';
+      query.couponTypeDiscount = 'FLAT_DISCOUNT';
       query.minimumPurchase = { $exists: true, $eq: 0 };
       break;
     case 'FLAT_DISCOUNT_WITH_MIN':
       query.couponType = 'GENERAL';
+      query.couponTypeDiscount = 'FLAT_DISCOUNT';
       query.minimumPurchase = { $gt: 0 };
       break;
     case 'FREE_SHIPPING':
@@ -234,7 +279,7 @@ const buildFilterQuery = (filters: any): FilterQuery<any> => {
   return query;
 };
 
-// GET method for fetching coupons with search and filters
+// GET method for fetching coupons with search, filters, and unique coupon by "diffrance" field
 export const getCoupons = async (req: Request, res: Response): Promise<Response> => {
   try {
     // Validate query params using Joi (or your preferred validation library)
@@ -248,13 +293,12 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
       });
     }
 
-    // Extract pagination and sorting info
+    // Pagination and sorting info
     const page = Number(filters.page) || 1;
-    const limit = Number(filters.limit) || 1;
-    const sortBy = filters.sortBy || 'createdAt'; // Default sorting by created date
+    const limit = Number(filters.limit) || 10;
+    const sortBy = filters.sortBy || 'createdAt';
     const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;
 
-    // Ensure limit and page are valid numbers
     if (isNaN(page) || isNaN(limit)) {
       return res.status(400).json({ message: 'Invalid pagination values' });
     }
@@ -265,8 +309,21 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
     const skip = (page - 1) * limit;
     const sort: { [key: string]: any } = { [sortBy]: sortOrder };
 
-    // Fetch the coupons based on the query, with pagination and sorting
-    const coupons = await Coupon.find(query).skip(skip).limit(limit).sort(sort);
+    // Fetch coupons based on the query, pagination, and sorting
+    let coupons = await Coupon.find(query).skip(skip).limit(limit).sort(sort);
+
+    // Filter out duplicates based on the "diffrance" field, keeping only the first unique entry
+    const uniqueCoupons = coupons.reduce((acc, coupon) => {
+      if (!acc.some((item) => item.diffrance === coupon.diffrance)) {
+        // Replace couponCode with diffrance
+        const modifiedCoupon = {
+          ...coupon.toObject(), // Convert to a plain object
+          couponCode: coupon.diffrance, // Set couponCode to diffrance
+        };
+        acc.push(modifiedCoupon);
+      }
+      return acc;
+    }, []);
 
     // Fetch the total count for pagination
     const totalCoupons = await Coupon.countDocuments(query);
@@ -274,9 +331,9 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
     // Return the result with pagination info
     return res.status(200).json({
       status: 'success',
-      data: coupons,
+      data: uniqueCoupons,
       pagination: {
-        totalItems: totalCoupons,
+        totalItems: uniqueCoupons.length,
         currentPage: page,
         totalPages: Math.ceil(totalCoupons / limit),
         pageSize: limit,
@@ -290,6 +347,9 @@ export const getCoupons = async (req: Request, res: Response): Promise<Response>
     });
   }
 };
+
+
+
 // Delete coupon by ID
 export const deleteCoupon = async (req: Request, res: Response) => {
   try {

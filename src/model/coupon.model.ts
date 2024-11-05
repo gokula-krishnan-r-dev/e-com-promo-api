@@ -41,12 +41,13 @@ export interface ICoupon extends Document {
   useCount: number;
   noOfCoupon?: number;
   couponMethod?: string;
-  diffrance?: number;
+  diffrance?: string;
+  isAuto?: boolean;
 }
 const CouponSchema = new Schema<ICoupon>(
   {
     couponType: { type: String, enum: CouponType, required: true },
-    diffrance: { type: Number, required: false },
+    diffrance: { type: String, required: false },
     useCount: { type: Number, required: false, default: 0 },
     noOfCoupon: { type: Number, required: false },
     couponCode: { type: String, required: false, unique: true },
@@ -64,6 +65,7 @@ const CouponSchema = new Schema<ICoupon>(
     displayOnSite: { type: Boolean, required: false },
     description: { type: String, required: false },
     status: { type: String, enum: Status, required: true },
+    isAuto: { type: Boolean, required: false , default: false},
     couponTypeDiscount: {
       type: String,
       enum: couponTypeDiscount,
