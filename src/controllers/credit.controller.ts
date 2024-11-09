@@ -3,6 +3,9 @@ import { createCreditSchema, updateCreditSchema } from '../validators/credit.val
 import { Credit } from '../model/credit.model';
 import { UserCreditMapping } from '../model/credit.mapping.model';
 import { fetchById } from './firstOrderDiscount.controller';
+import { responseJson } from '../utils/responseJson';
+import { MongoClient } from 'mongodb';
+import { uri } from '../routes/v1/user.route';
 const assignCouponToUsers = async (userIds: string[], creditId: any) => {
   try {
     const mappings = await Promise.all(
@@ -38,6 +41,36 @@ export const createCredit = async (req: Request, res: Response) => {
     const { error, value } = createCreditSchema.validate(req.body);
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
+    }
+    if (value.user === 'ALL') {
+      const client = new MongoClient(uri);
+
+      try {
+        // Connect to the MongoDB cluster
+        await client.connect();
+        const role = 'user';
+        // Access the specific database and collection
+        const database = client.db('big_one'); // replace with your database name
+        const collection = database.collection('users'); // replace with your collection name
+        const data = await collection.find({ role }).toArray();
+
+        const final: any = data.map((item) => {
+          return item._id;
+        });
+
+        const credit = new Credit(value); // value already validated
+        console.log(credit, 'credit');
+
+        await assignCouponToUsers(final, credit._id);
+        await credit.save();
+
+        return responseJson(res, 201, 'Coupon created successfully', final);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        // Close the connection
+        await client.close();
+      }
     }
 
     const credit = new Credit(value); // value already validated

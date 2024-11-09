@@ -4,7 +4,7 @@ import { responseJson } from '../../utils/responseJson';
 const UserRoute = express.Router();
 
 // Connection URL
-const uri = 'mongodb+srv://mahendrakumara:OWBwvJMulburUhtN@cluster0.gqgye.mongodb.net/';
+export const uri = 'mongodb+srv://mahendrakumara:OWBwvJMulburUhtN@cluster0.gqgye.mongodb.net/';
 UserRoute.get('/list', async (req, res) => {
   const client = new MongoClient(uri);
   const { firstName, lastName } = req.query;

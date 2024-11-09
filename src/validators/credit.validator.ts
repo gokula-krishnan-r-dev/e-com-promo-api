@@ -11,11 +11,20 @@ export const createCreditSchema = Joi.object({
   endDate: Joi.date().min(Joi.ref('startDate')).optional().messages({
     'date.min': 'End date cannot be before start date',
   }),
-  userIds: Joi.array().items(Joi.string()).required().messages({
-    'array.base': 'User IDs must be an array',
-    'any.required': 'User IDs are required',
+  user: Joi.string().required().messages({
+    'string.base': 'User ID must be a string',
+    'any.required': 'User ID is required',
   }),
-
+  userIds: Joi.array()
+    .items(Joi.string())
+    .when('user', {
+      is: 'ALL',
+      then: Joi.optional(),
+      otherwise: Joi.array().min(1).required().messages({
+        'array.min': "Select at least one user when User is not 'ALL'.",
+        'any.required': "User IDs are required when User is not 'ALL'.",
+      }),
+    }),
   remarks: Joi.string().max(500).optional(),
   status: Joi.string()
     .valid(...Object.values(Status))
@@ -24,10 +33,6 @@ export const createCreditSchema = Joi.object({
       'any.only': `Status must be one of: ${Object.values(Status).join(', ')}`,
       'any.required': 'Status is required',
     }),
-  user: Joi.string().required().messages({
-    'string.base': 'User ID must be a string',
-    'any.required': 'User ID is required',
-  }),
 });
 
 export const updateCreditSchema = Joi.object({

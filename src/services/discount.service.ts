@@ -1,49 +1,59 @@
+import { FilterQuery } from 'mongoose';
 import Discount from '../model/discount.model';
+
 export class DiscountService {
   async createDiscount(couponData: any) {
     const newCoupon = new Discount(couponData);
-
     await newCoupon.save();
     return newCoupon;
   }
-  async getDiscounts(queryParams: any) {
-    const { sortBy, sortOrder, page, limit, search, startDate, endDate, ...filters } = queryParams;
 
-    // Sort options based on query
+  async getDiscounts(queryParams: any) {
+    const {
+      sortBy = 'startDate',
+      sortOrder = 'desc',
+      page = 1,
+      limit = 10,
+      search,
+      startDate,
+      endDate,
+      ...filters
+    } = queryParams;
+
     const sortOptions: { [key: string]: 1 | -1 } = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
     const skip = (page - 1) * limit;
 
-    // Build search conditions using $or operator to search multiple fields
-    const searchConditions = search
-      ? {
-          $or: [
-            { cartAmount: { $regex: search, $options: 'i' } }, // If searching in cartAmount
-            { discountPercentage: { $regex: search, $options: 'i' } }, // Searching discountPercentage
-            { validForCountry: { $regex: search, $options: 'i' } }, // Searching in validForCountry
-          ],
-        }
-      : {};
+    // Initialize search conditions
+    const searchConditions: FilterQuery<any> = {};
 
-    // Date range filtering using startDate and endDate
-    const dateFilter = {};
+    if (search) {
+      // Handle numeric search for cartAmount and discountPercentage
+      const searchNumeric = parseFloat(search);
+      searchConditions.$or = [
+        { validCountry: { $regex: search, $options: 'i' } },
+        ...(isNaN(searchNumeric) ? [] : [{ cartAmount: searchNumeric }, { discountPercentage: searchNumeric }]),
+      ];
+    }
+
+    // Date range filter
+    const dateFilter: FilterQuery<any> = {};
     if (startDate && endDate) {
       dateFilter['startDate'] = {
-        $gte: new Date(startDate), // Greater than or equal to the specified startDate
-        $lte: new Date(endDate), // Less than or equal to the specified endDate
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
       };
     }
 
-    // Combine filters, search conditions, and date filters
-    const queryConditions = {
+    // Combine all conditions into the query
+    const queryConditions: FilterQuery<any> = {
       ...filters,
       ...searchConditions,
       ...dateFilter,
     };
 
-    // Fetch the discounts from the database
+    // Fetch discounts and count total documents for pagination
     const discounts = await Discount.find(queryConditions).sort(sortOptions).skip(skip).limit(limit).exec();
 
-    // Count total matching documents for pagination
     const total = await Discount.countDocuments(queryConditions);
 
     return {
@@ -62,7 +72,6 @@ export class DiscountService {
     return Discount.findByIdAndUpdate(id, discountData, { new: true });
   }
 
-  //delete
   async deleteDiscount(id: string) {
     return Discount.findByIdAndDelete(id);
   }
