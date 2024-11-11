@@ -384,6 +384,7 @@ export const deleteCoupon = async (req: Request, res: Response) => {
         message: 'Coupon not found. Please provide a valid coupon ID.',
       });
     }
+    console.log(couponId, 'couponId');
 
     // Delete the coupon
     await couponService.deleteCoupon(couponId);

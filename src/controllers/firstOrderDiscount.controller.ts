@@ -152,9 +152,10 @@ export class FirstOrderDiscountController {
 
   async deleteFirstOrderDiscount(req: Request, res: Response) {
     try {
-      const { discountId } = req.params;
+      const { id } = req.params;
+      console.log(id, 'discountId');
 
-      await firstOrderDiscountService.deleteFirstOrderDiscount(discountId);
+      await firstOrderDiscountService.deleteFirstOrderDiscount(id);
 
       res.status(200).json({
         message: 'First-order discount deleted successfully',

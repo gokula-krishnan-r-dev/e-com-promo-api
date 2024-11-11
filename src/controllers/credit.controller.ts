@@ -88,10 +88,56 @@ export const createCredit = async (req: Request, res: Response) => {
 
 export const getCredit = async (req: Request, res: Response) => {
   try {
-    const { sortBy, sortOrder, page = 1, limit = 10, search, startDate, endDate, ...filters } = req.query;
+    const {
+      sortBy = 'startDate', // Default sorting field
+      sortOrder = 'desc', // Default sorting order
+      page = 1,
+      limit = 10,
+      firstName,
+      lastName,
+      validUpTo,
+      status,
+      startDate,
+      endDate,
+      ...filters
+    } = req.query;
 
-    // Fetch all credits and populate creditId details
-    const credits = await UserCreditMapping.find({}).populate('creditId');
+    // Construct a dynamic filter object
+    const queryFilters: any = {};
+
+    if (firstName) {
+      queryFilters.firstName = { $regex: new RegExp(firstName as string, 'i') }; // Case-insensitive search for firstName
+    }
+
+    if (lastName) {
+      queryFilters.lastName = { $regex: new RegExp(lastName as string, 'i') }; // Case-insensitive search for lastName
+    }
+
+    // if (validUpTo) {
+    //   queryFilters.validUpTo = { $lte: new Date(validUpTo as any) }; // Filter for validUpTo dates
+    // }
+
+    if (status) {
+      queryFilters.status = status; // Filter by status
+    }
+
+    if (validUpTo) {
+      queryFilters.endDate = { $gte: new Date(validUpTo as any) }; // Filter by startDate and endDate
+    }
+
+    // Include any additional filters dynamically
+    Object.keys(filters).forEach((key) => {
+      if (filters[key]) {
+        queryFilters[key] = filters[key]; // Add dynamic filters
+      }
+    });
+
+    // Fetch credits based on the dynamic filter
+    const credits = await UserCreditMapping.find(queryFilters)
+      .populate('creditId') // Populate creditId details
+      .sort({ [sortBy as string]: sortOrder === 'desc' ? -1 : 1 }) // Sort based on query params
+      .skip((Number(page) - 1) * Number(limit)) // Pagination: Skip items based on current page
+      .limit(Number(limit)); // Limit results based on page size
 
     // Group credits by userId and format creditId as an array
     const groupedCredits = credits.reduce((acc, credit) => {
@@ -118,8 +164,8 @@ export const getCredit = async (req: Request, res: Response) => {
     // Convert the grouped credits object to an array
     const data = Object.values(groupedCredits);
 
-    // Get the total number of credits
-    const totalCredit = await Credit.countDocuments();
+    // Get the total number of credits for pagination
+    const totalCredit = await UserCreditMapping.countDocuments(queryFilters);
 
     return res.status(200).json({
       data,
@@ -171,7 +217,7 @@ export const updateCredit = async (req: Request, res: Response) => {
 
 export const deleteCredit = async (req: Request, res: Response) => {
   try {
-    const credit = await Credit.findByIdAndDelete(req.params.id);
+    const credit = await UserCreditMapping.findByIdAndDelete(req.params.id);
     if (!credit) {
       return res.status(404).json({ message: 'Credit not found' });
     }

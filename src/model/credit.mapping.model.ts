@@ -8,6 +8,7 @@ export interface IUserCreditMapping extends Document {
   creditId: any['_id']; // Reference to the Coupon model
   isUsed?: boolean; // Track if the coupon is used
   usedAt?: Date; // Date when the coupon was used
+  status?: string; // Status of the coupon
 }
 const UserCreditMappingSchema = new Schema<IUserCreditMapping>(
   {
@@ -18,6 +19,7 @@ const UserCreditMappingSchema = new Schema<IUserCreditMapping>(
     creditId: { type: Schema.Types.ObjectId, ref: 'credit', required: true },
     isUsed: { type: Boolean, default: false }, // Whether the coupon has been used
     usedAt: { type: Date, required: false }, // Optional date for coupon usage
+    status: { type: String, required: false, default: 'ACTIVE' }, // Optional status for the coupon
   },
   { timestamps: true } // Automatically add `createdAt` and `updatedAt` fields
 );

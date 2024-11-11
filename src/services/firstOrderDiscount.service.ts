@@ -63,13 +63,8 @@ export class FirstOrderDiscountService {
   }
 
   async deleteFirstOrderDiscount(id) {
-    const discount = await FirstOrderDiscount.findOneAndDelete(id);
-
-    if (!discount) {
-      throw new Error('No available first-order discount to delete.');
-    }
-
-    return discount;
+    await FirstOrderDiscount.findByIdAndDelete(id);
+    return;
   }
 
   async fetchById(id) {
